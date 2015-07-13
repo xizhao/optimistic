@@ -27,5 +27,11 @@
   "bugs": {
     "url": "https://github.com/xizhao/optimistic/issues"
   },
-  "homepage": "https://github.com/xizhao/optimistic#readme"
+  "homepage": "https://github.com/xizhao/optimistic#readme",
+  "dependencies": {
+    "bluebird": "^2.9.33",
+    "eventemitter3": "^1.1.1",
+    "immutable": "^3.7.4",
+    "inherits": "^2.0.1"
+  }
 }
