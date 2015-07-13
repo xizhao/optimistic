@@ -1,0 +1,31 @@
+{
+  "name": "optimistic",
+  "version": "0.0.1",
+  "description": "Lightweight library based on ImmutableJS to handle optimistic updates",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/xizhao/optimistic.git"
+  },
+  "keywords": [
+    "immutable",
+    "immutable-js",
+    "react",
+    "optimstic",
+    "updates",
+    "reactjs"
+  ],
+  "author": {
+    "name": "Kevin Wang",
+    "email": "kevin@tldrlegal.com",
+    "url": "http://github.com/xizhao"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xizhao/optimistic/issues"
+  },
+  "homepage": "https://github.com/xizhao/optimistic#readme"
+}
