@@ -35,13 +35,13 @@ Now push an async update:
 ```javascript
 var update_callbacks = book.pushUpdate(function(book_map) {
   // Remove "Kevin" from the front and add "Marcy", "Zach", and "Bill" to the end
-  book_map.updateIn(['followers'], function(followers) {
-    followers.shift().push('Marcy', 'Zach', 'Bill');
-  });
+  var followers = book_map.get('followers');
+  followers.shift();
+  followers.push('Marcy', 'Zach', 'Bill');
 });
 
 // Look, the update is applied optimistically!
-console.log(book.value); // { title: "To Kill a Mockingbird", author: "Harper Lee", awards: 2, followers: ["Caleb", "Marcy", "Zach", "Bill"] }
+console.log(book.value); // { title: "To Kill a Mockingbird", ... followers: ["Caleb", "Marcy", "Zach", "Bill"] }
 
 setTimeout(function fakeAPICall() {
   update_callbacks.failed(new Error("500: We don't like Marcy.")); // uh oh, there's an error from our 'server'.

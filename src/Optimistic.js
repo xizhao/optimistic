@@ -79,9 +79,8 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
       self._base = self._base.withMutations(update); // apply only to base as resolved is already applied
       // TODO: since indexOf() is O(n), add an option to omit interactions with updateQueue if no manual resolution is needed
       self._updateQueue.splice(self._updateQueue.indexOf(update_queue_item), 1);
-    }, function(err) {
+    }).catch(function(err) {
       self.resolveUpdates(); // since the promise is rejected, this should rollback the update
-      throw err;
     });
     if(old_resolved_copy !== this._resolved) {
       this.value = this._resolved.toJS();
