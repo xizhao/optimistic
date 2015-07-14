@@ -68,9 +68,9 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
         apply: update,
         promise: null
       };
-  update_queue_item.promise = new Promise(function(resolve, reject) {
-    callbacks.resolve = resolve;
-    callbacks.reject = reject;
+  update_queue_item.promise = callbacks._promise = new Promise(function(resolve, reject) {
+    callbacks.succeeded = resolve;
+    callbacks.failed = reject;
   });
   this._resolved = this._resolved.withMutations(update); 
   if(!deferResolve) {
@@ -78,8 +78,9 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
       self._base = self._base.withMutations(update); // apply only to base as resolved is already applied
       // TODO: since indexOf() is O(n), add an option to omit interactions with updateQueue if no manual resolution is needed
       self._updateQueue.splice(self._updateQueue.indexOf(update_queue_item), 1);
-    }, function() {
+    }, function(err) {
       self.resolveUpdates(); // since the promise is rejected, this should rollback the update
+      throw err;
     });
     if(old_resolved_copy !== this._resolved) {
       this.value = this._resolved.toJS();
