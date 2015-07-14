@@ -12,7 +12,7 @@ var Immutable = require('immutable'),
  */
 var Optimistic = function(data) {
   this._base = Immutable.fromJS(data); // the base source of truth -- initial data + every successful update
-  this._resolved = null;               // the current optimistic copy -- base + pending changes
+  this._resolved = this._base;         // the current optimistic copy -- base + pending changes
   this._updateQueue = [];              // list of update
   this.value = data;                   // JS copy of this._resolved -- TODO: possibly cache and calculate on need via accessor rather than per update resolvie
 };
@@ -55,7 +55,7 @@ Optimistic.prototype.resolveUpdates = function() {
  * Push an async update
  * @param {function} update A function that takes in a transient {Immutable} and applies updates
  * @param {boolean} deferResolve Whether to defer updating the value after the promise is resolved -- useful for batching resolutions and calling .resolveUpdates() manually
- * @returns {Promise} A promise used .resolve() or .reject() the update
+ * @returns {object} Promise callbacks used .resolve() or .reject() the update
  */
 Optimistic.prototype.pushUpdate = function(update, deferResolve) {
   if(typeof update !== "function") {
@@ -63,14 +63,19 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
   }
   var self = this,
       old_resolved_copy = this._resolved,
+      callbacks = {},
       update_queue_item = {
         apply: update,
-        promise: new Promise()
+        promise: null
       };
+  update_queue_item.promise = new Promise(function(resolve, reject) {
+    callbacks.resolve = resolve;
+    callbacks.reject = reject;
+  });
   this._resolved = this._resolved.withMutations(update); 
   if(!deferResolve) {
     update_queue_item.promise.then(function() {
-      self._base.withMutations(update); // apply only to base as resolved is already applied
+      self._base = self._base.withMutations(update); // apply only to base as resolved is already applied
       // TODO: since indexOf() is O(n), add an option to omit interactions with updateQueue if no manual resolution is needed
       self._updateQueue.splice(self._updateQueue.indexOf(update_queue_item), 1);
     }, function() {
@@ -82,7 +87,7 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
     }
   }
   self._updateQueue.push(update_queue_item);
-  return update_queue_item.promise;
+  return callbacks;
 };
 
 /**

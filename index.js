@@ -1,1 +1,1 @@
-modules.exports = require('./src/Optimistic.js');
+module.exports = require('./src/Optimistic.js');
