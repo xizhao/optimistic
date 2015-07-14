@@ -47,7 +47,7 @@ setTimeout(function fakeAPICall() {
   update_callbacks.failed(new Error("500: We don't like Marcy.")); // uh oh, there's an error from our 'server'.
   book.on('change', function(value) {
     // Phew! Looks like the update is rolled back!
-    console.log('value'); // { title: "To Kill a Mockingbird", ... followers: ["Kevin", "Caleb"] }
+    console.log(value); // { title: "To Kill a Mockingbird", ... followers: ["Kevin", "Caleb"] }
   });
 }, 400);
 ```
@@ -70,8 +70,10 @@ Optimistic was built so that optimistic UI updates with React and Flux would be 
 
 Optimistic objects are also event emitters, so use `.on('change')` to trigger change updates in your stores.
 
-## Batching Updates
-TBA
+## Batching Update Resolutions
+`.pushUpdate(function() { ... }, true)` -- passing in true as the second argument prevents updates from automatically resolving (applied permanently/rolled-back) after the callbacks execute.
+
+If you have a large load of asynchronous events that you want to wait to return, you can gain a performance boost by preventing automatic resolution and then calling `.resolveUpdates()` to manually resolve all updates that have completed.
 
 ## Contributing
 Open an issue or send a PR.

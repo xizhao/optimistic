@@ -25,6 +25,7 @@ inherits(Optimistic, EventEmitter);
  */
 Optimistic.prototype.resolveUpdates = function() {
   var self = this;
+  if(this._updateQueue.length <= 0) return this.value;
   // rebuild resolved updates
   var old_resolved_copy = this._resolved;
   this._resolved = this._base.withMutations(function(object) {
