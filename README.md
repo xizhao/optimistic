@@ -38,6 +38,7 @@ var update_callbacks = book.pushUpdate(function(book_map) {
   var followers = book_map.get('followers');
   followers.shift();
   followers.push('Marcy', 'Zach', 'Bill');
+  // Note: these operations are executed in .withMutations() so they apply dispite being ImmutableJS
 });
 
 // Look, the update is applied optimistically!
@@ -64,6 +65,10 @@ Update resolution is asynchronous, so after executing a callback, the update wil
 
 ## Complex Updates
 Optimistic is built so that you can do complex mutations as long as there are no dependencies between updates. 
+
+You can do everything from cascading filters on arrays or doing deep updates while preserving relative order upon rollbacks.  It's OK if two operations are applied on the same fields, they just can't be dependent on order of execution.
+
+[TBA example]
 
 ## Usage with React/Flux
 Optimistic was built so that optimistic UI updates with React and Flux would be really easy.
