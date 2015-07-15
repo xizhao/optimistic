@@ -21,11 +21,12 @@ console.log(book.value); // { title: "To Kill a Mockingbird", awards: 1 }
 Update the object synchronously using operations from [Immutable JS](https://facebook.github.io/immutable-js/):
 ```javascript
 book.update(function(book_map) {
-  // Your update function receives an Immutable.toJS() copy of the initial data
+  // Your update function receives an Immutable.fromJS() copy of the initial data
   // In this case, book_map is an instance of Immutable.Map
-  book_map.set('author', 'Harper Lee');
-  book_map.set('awards', book_map.get('awards') + 1);
-  book_map.set('followers', ['Kevin', 'Caleb']);
+  return book_map.set('author', 'Harper Lee')
+                 .set('awards', book_map.get('awards') + 1)
+                 .set('followers', ['Kevin', 'Caleb']);
+  // Note: these are immutable objects! If you aren't familiar, read the Immutable-JS docs!
 });
 
 console.log(book.value); // { title: "To Kill a Mockingbird", author: "Harper Lee", awards: 2, followers: ["Kevin", "Caleb"] }
@@ -34,21 +35,20 @@ console.log(book.value); // { title: "To Kill a Mockingbird", author: "Harper Le
 Now push an async update:
 ```javascript
 var update_callbacks = book.pushUpdate(function(book_map) {
-  // Remove "Kevin" from the front and add "Marcy", "Zach", and "Bill" to the end
-  var followers = book_map.get('followers');
-  followers.shift();
-  followers.push('Marcy', 'Zach', 'Bill');
-  // Note: these operations are executed in .withMutations() so they apply dispite being ImmutableJS
+  // Add "Marcy", "Zach", and "Bill" to the middle
+  book_map.get('followers').splice(1, 0, 'Marcy', 'Zach', 'Bill');
+  return book_map;
 });
 
 // Look, the update is applied optimistically!
-console.log(book.value); // { title: "To Kill a Mockingbird", ... followers: ["Caleb", "Marcy", "Zach", "Bill"] }
+console.log(book.value); // { title: "To Kill a Mockingbird", ... followers: ["Kevin", "Marcy", "Zach", "Bill", "Caleb"] }
 
 setTimeout(function fakeAPICall() {
   update_callbacks.failed(new Error("500: We don't like Marcy.")); // uh oh, there's an error from our 'server'.
-  book.on('change', function(value) {
+  book.on('change', function(value, resolved_updates) {
     // Phew! Looks like the update is rolled back!
     console.log(value); // { title: "To Kill a Mockingbird", ... followers: ["Kevin", "Caleb"] }
+    console.log(resolved_updates); // [ { succeeded: false, value: [Error: 500: We don't like Marcy.] } ]
   });
 }, 400);
 ```
@@ -74,6 +74,8 @@ You can do everything from cascading filters on arrays or doing deep updates whi
 Optimistic was built so that optimistic UI updates with React and Flux would be really easy.
 
 Optimistic objects are also event emitters, so use `.on('change')` to trigger change updates in your stores.
+
+The `change` event takes 2 parameters: the current value of the Optimistic object the and a list of updates made during the last update resolution step.
 
 ## Batching Update Resolutions
 `.pushUpdate(function() { ... }, true)` -- passing in true as the second argument prevents updates from automatically resolving (applied permanently/rolled-back) after the callbacks execute.

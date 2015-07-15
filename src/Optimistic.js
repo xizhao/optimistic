@@ -11,10 +11,10 @@ var Immutable = require('immutable'),
  * @param {object} data
  */
 var Optimistic = function(data) {
-  this._base = Immutable.fromJS(data); // the base source of truth -- initial data + every successful update
-  this._resolved = this._base;         // the current optimistic copy -- base + pending changes
-  this._updateQueue = [];              // list of update
-  this.value = data;                   // JS copy of this._resolved -- TODO: possibly cache and calculate on need via accessor rather than per update resolvie
+  this._pessimistic = Immutable.fromJS(data); // the base source of truth -- initial data + every successful update
+  this._optimistic = this._pessimistic;       // the current optimistic copy -- base + pending changes
+  this._updateQueue = [];                     // list of update
+  this.value = data;                          // JS copy of this._optimistic -- TODO: possibly cache and calculate on need via accessor rather than per update resolvie
 };
 
 inherits(Optimistic, EventEmitter);
@@ -24,30 +24,32 @@ inherits(Optimistic, EventEmitter);
  * @returns {object} Value
  */
 Optimistic.prototype.resolveUpdates = function() {
-  var self = this;
   if(this._updateQueue.length <= 0) return this.value;
   // rebuild resolved updates
-  var old_resolved_copy = this._resolved;
-  this._resolved = this._base.withMutations(function(object) {
-    // NOTE: order of applying updates shouldn't matter as there should be no data dependency between async updates
-    // if you have a data dependency, then you should be applying them synchronously using pushUpdate's returned promise callbacks!
-    for(var i=self._updateQueue.length - 1; i>=0; i--) {
-      var update = self._updateQueue[i];
-      if(update.promise.isPending()) {
-        update.apply(object);
-        continue;
-      } else if(update.promise.isFulfilled()) {
-        update.apply(object);
-        // if the update succeeds, apply it permanently to the base for next resolution
-        self._base = self._base.withMutations(update.apply);
-      }
-      // remove any resolved update
-      self._updateQueue.splice(i, 1);
+  var old_optimistic_copy = this._optimistic,
+      resolved_updates = [];
+  this._optimistic = this._pessimistic;
+  // NOTE: order of applying updates shouldn't matter as there should be no data dependency between async updates
+  // if you have a data dependency, then you should be applying them synchronously using pushUpdate's returned promise callbacks!
+  for(var i=this._updateQueue.length - 1; i>=0; i--) {
+    var update = this._updateQueue[i];
+    if(update.promise.isPending()) {
+      this._optimistic = update.apply(this._optimistic);
+      continue;
+    } else if(update.promise.isFulfilled()) {
+      this._optimistic = update.apply(this._optimistic, update.promise.value());
+      this._pessimistic = update.apply(this._pessimistic, update.promise.value());
     }
-  });
-  if(old_resolved_copy !== this._resolved) {
-    this.value = this._resolved.toJS();
-    self.emit('change', this.value);
+    // remove any resolved update & push to resolved list
+    this._updateQueue.splice(i, 1);
+    resolved_updates.push({
+      succeeded: update.promise.isFulfilled(),
+      value: update.promise.isFulfilled() ? update.promise.value() : update.promise.reason()
+    });
+  }
+  if(old_optimistic_copy !== this._optimistic) { // todo: handle case where data doesn't change but new errors are present
+    this.value = this._optimistic.toJS();
+    this.emit('change', this.value, resolved_updates);
   }
   return this.value;
 };
@@ -63,7 +65,7 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
     throw new Error("Updates must be a function.");
   }
   var self = this,
-      old_resolved_copy = this._resolved,
+      old_optimistic_copy = this._optimistic,
       callbacks = {},
       update_queue_item = {
         apply: update,
@@ -73,21 +75,26 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
     callbacks.succeeded = resolve;
     callbacks.failed = reject;
   });
-  this._resolved = this._resolved.withMutations(update); 
+  this._optimistic = update(this._optimistic); 
   if(!deferResolve) {
-    update_queue_item.promise.then(function() {
-      self._base = self._base.withMutations(update); // apply only to base as resolved is already applied
-      // TODO: since indexOf() is O(n), add an option to omit interactions with updateQueue if no manual resolution is needed
-      self._updateQueue.splice(self._updateQueue.indexOf(update_queue_item), 1);
-    }).catch(function(err) {
+    update_queue_item.promise.then(function(value) {
+      if(!value) {
+        self._pessimistic = update(self._pessimistic); // apply only to base as resolved is already applied
+        // TODO: since indexOf() is O(n), add an option to omit interactions with updateQueue if no manual resolution is needed
+        self._updateQueue.splice(self._updateQueue.indexOf(update_queue_item), 1);
+      } else {
+        // if a value is provided by the server, we have to rollback the old application rebuild the optimistic copy
+        self.resolveUpdates();
+      }
+    }, function(err) {
       self.resolveUpdates(); // since the promise is rejected, this should rollback the update
     });
-    if(old_resolved_copy !== this._resolved) {
-      this.value = this._resolved.toJS();
-      self.emit('change', this.value);
+    if(old_optimistic_copy !== this._optimistic) {
+      this.value = this._optimistic.toJS();
+      this.emit('change', this.value, []); // emit value and resolved updates (none)
     }
   }
-  self._updateQueue.push(update_queue_item);
+  this._updateQueue.push(update_queue_item);
   return callbacks;
 };
 
@@ -97,9 +104,9 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
  * @returns {object} Value of this {Optimistic}
  */
 Optimistic.prototype.update = function(update) {
-  this._base = this._base.withMutations(update);
-  this._resolved = this._resolved.withMutations(update);
-  return this.value = this._resolved.toJS();
+  this._pessimistic = update(this._pessimistic);
+  this._optimistic = update(this._optimistic);
+  return this.value = this._optimistic.toJS();
 };
 
 /**
@@ -107,8 +114,7 @@ Optimistic.prototype.update = function(update) {
  * @returns {Immutable} Current resolved value
  */
 Optimistic.prototype.getResolved = function() {
-  return this._resolved;
+  return this._optimistic;
 };
 
 module.exports = Optimistic;
-
