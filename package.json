@@ -1,6 +1,6 @@
 {
   "name": "optimistic",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Lightweight library based on ImmutableJS to handle optimistic updates",
   "main": "index.js",
   "scripts": {
