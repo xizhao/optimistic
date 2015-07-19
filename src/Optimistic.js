@@ -104,9 +104,14 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
  * @returns {object} Value of this {Optimistic}
  */
 Optimistic.prototype.update = function(update) {
+  var old_optimistic = this._optimistic;
   this._pessimistic = update(this._pessimistic);
   this._optimistic = update(this._optimistic);
-  return this.value = this._optimistic.toJS();
+  if(old_optimistic != this._optimistic) {
+    this.value = this._optimistic.toJS();
+    this.emit('change', this.value, []);
+  }
+  return this.value;
 };
 
 /**
