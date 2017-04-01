@@ -1,6 +1,8 @@
 # Optimistic
 Immutable.js objects w/ Optimistic Updates for use in React/Flux or Vanilla javascript projects.
 
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fxizhao%2Foptimistic.svg?size=large)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fxizhao%2Foptimistic?ref=badge_large)
+
 ## Getting Started
 Install via `git clone` or npm:
 ```
