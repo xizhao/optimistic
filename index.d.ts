@@ -10,7 +10,7 @@ declare module 'optimistic' {
 
     constructor(value: T);
 
-    update(f: (before: __Immutable.Map<string, any>, forceEmit?: boolean) => __Immutable.Map<string, any>): T;
+    update(f: (before: __Immutable.Map<string, any>) => __Immutable.Map<string, any>, forceEmit?: boolean): T;
 
     pushUpdate(f: (value: __Immutable.Map<string, any>, resolvedValue?: T) => T, deferResolve?: boolean);
 
