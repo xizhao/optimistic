@@ -103,11 +103,11 @@ Optimistic.prototype.pushUpdate = function(update, deferResolve) {
  * @param {function} update
  * @returns {object} Value of this {Optimistic}
  */
-Optimistic.prototype.update = function(update) {
+Optimistic.prototype.update = function(update, forceEmit) {
   var old_optimistic = this._optimistic;
   this._pessimistic = update(this._pessimistic);
   this._optimistic = update(this._optimistic);
-  if(old_optimistic != this._optimistic) {
+  if(forceEmit || old_optimistic != this._optimistic) {
     this.value = this._optimistic.toJS();
     this.emit('change', this.value, []);
   }
